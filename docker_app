@@ -1,0 +1,123 @@
+import subprocess
+import yaml
+import json
+import collections
+import os
+import time
+import telnetlib
+from getpass import getpass
+cmd1 = "enable"
+cmd2 = "cisco"
+cmd3 = "conf t"
+host = "172.29.3.11"
+port = 2038
+promt = "%s>"%(host)
+host_disable = "%s>"%(host)
+passwd = getpass()
+cmd20 = "app-hosting install appid docker package flash:docker.qcow2.tar"
+cmd21 = "app-hosting activate app docker"
+cmd22 = "app-hosting start app docker"
+cmd5 = "app-hosting connect app docker console"
+
+#############################PACKER###########################################################
+print("\033[91m {}\033[00m" .format('RUNNING PACKER to create the vmdk file'))
+os.chdir("/Users/aaditipai/Downloads/packer.bak")
+subprocess.call(["ls"])
+subprocess.call(["packer", "build", "template.json"])
+
+###########################################################################################################
+
+##############################Creating TAR file#################################################
+print("\033[91m {}\033[00m" .format('DEFRAGMENT the vmdk and CREATE the TAR File'))
+os.chdir("/Users/aaditipai/Downloads/packer.bak/output-ubuntu")
+subprocess.call(["/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager", "-r", "disk.vmdk", "-t", "0", "docker.vmdk"])
+time.sleep(2) 
+subprocess.call(["/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager", "-d", "docker.vmdk"])
+subprocess.call(["cp" , "docker.vmdk", "/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/"])
+time.sleep(2)
+os.chdir("/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/")
+subprocess.call(["mkdir", "docker-folder"])
+subprocess.call(["mv" , "docker.vmdk", "docker-folder"])
+os.chdir("/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/docker-folder")
+subprocess.call(["qemu-img", "convert", "-c", "-O", "qcow2", "docker.vmdk", "docker.qcow2"])
+time.sleep(5)
+os.chdir("/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/docker-folder")
+subprocess.call(["cp", "../n1/package.yaml","."])
+doc = collections.OrderedDict()
+with open('package.yaml') as f:
+        doc = yaml.safe_load(f)
+
+doc["app"]["startup"]["disks"][0]["file"] = "docker.qcow2"
+print(doc)
+time.sleep(5)
+with open('package.yaml', 'w') as f:
+        yaml.safe_dump(doc, f)
+subprocess.call(["ioxclient", "package", "--name", "docker.qcow2", "."])
+time.sleep(2)
+subprocess.call(["scp", "docker.qcow2.tar", "aaditpai@sjc-ads-7327:/auto/tftp-sjc-users6/aaditpai/"])
+#################################################################################################################
+
+#############################telnet to router,configure it and scp image####################################################
+
+print("\033[91m {}\033[00m" .format('TELNETTING TO ROUTER, CONFIGURING DHCP AND COPYING TAR FILE TO THE ROUTER FOR HOSTING'))
+tn = telnetlib.Telnet(host,port, timeout=5)
+#tn.set_debuglevel(100)
+
+if promt == "host_disable":
+tn.write(cmd1.encode('ascii') + b"\n")
+time.sleep(1)
+tn.read_very_eager()
+tn.write(cmd3.encode('ascii') + b"\n")
+time.sleep(5)
+tn.read_very_eager()
+with open('/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/new1/config_file') as f:
+     for cmd in f:
+         tn.write(cmd.encode('ascii') + b"\n")
+         time.sleep(2)
+         tn.read_very_eager()
+time.sleep(5)
+tn.write(cmd9.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd10.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd11.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd12.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(b"\n")
+time.sleep(10)
+password_prompt = "Password:"
+response = tn.read_until(password_prompt.encode('ascii'))
+tn.write(passwd.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(b"\n")
+time.sleep(2700)
+
+
+#################################################################################################################
+
+#######################################INSTALL and connect to APP################################################
+print("\033[91m {}\033[00m" .format('INSTALL the app and CONNECT to it'))
+tn.write(cmd20.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(60)
+tn.write(cmd21.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(30)
+tn.write(cmd22.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(30)
+tn.write(cmd5.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(30)
+user_prompt = "ubuntu login: "
+response = tn.read_until(user_prompt.encode('ascii'))
+user_input = input('ubuntu login: ')
+tn.write(user_input.encode('ascii') + b"\n")
+time.sleep(2)
+passwd_prompt = 'Password:'
+response = tn.read_until(passwd_prompt.encode('ascii'))
+passwd = getpass()
+tn.write(passwd.encode('ascii') + b"\n")
+time.sleep(2)
+####################################################################################################################

@@ -1,0 +1,11 @@
+import yaml
+import json
+import collections
+doc = collections.OrderedDict()
+with open('package.yaml') as f:
+        doc = yaml.safe_load(f)
+        
+doc["app"]["startup"]["disks"][0]["file"] = "serial2.qcow2"
+print(doc)
+with open('package.yaml', 'w') as f:
+        yaml.safe_dump(doc, f)

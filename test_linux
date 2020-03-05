@@ -1,0 +1,206 @@
+import subprocess
+import yaml
+import json
+import collections
+import os
+import time
+import telnetlib
+from getpass import getpass
+cmd_ser1 = '\xff\xfc\x25'
+cmd_ser2 = '\xff\xfb\x00'
+cmd_ser3 = '\xff\xfd\x00\xff\xfb\x03\xff\xfd \x03\xff\xfd\x01\xff\xfe\xe8'
+cmd_ser4 = '\xff\xfe\x2c'
+cmd1 = "enable"
+cmd2 = "cisco"
+cmd9 = "copy scp: flash: vrf Mgmt-vrf"
+cmd10 = "172.27.18.5"
+cmd11 = "aaditpai"
+cmd12 = "/auto/tftp-sjc-users6/aaditpai/docker.qcow2.tar"
+cmd3 = "copy running-config flash:/test.cfg"
+cmd5 = "app-hosting connect app ubuntu_serial console"
+cmd4 = "exit"
+host = "172.29.3.11"
+port = 2038
+promt = "%s>"%(host)
+host_disable = "%s>"%(host)
+passwd = getpass()
+cmd14 = "iox"
+cmd13 = "conf t"
+cmd15 = "app-hosting appid ubuntu_serial"
+cmd16 = "vnic management guest-interface 0"
+cmd17 = "app-resource profile custom"
+cmd18 = "cpu 1200"
+cmd19 = "memory 2048"
+cmd20 = "app-hosting install appid ubuntu_serial package flash:serial.qcow2.tar"
+cmd21 = "app-hosting activate app ubuntu_serial"
+cmd22 = "app-hosting start app ubuntu_serial"
+cmd23 = "end"
+
+
+os.chdir("/Users/aaditipai/Downloads/packer.bak")
+subprocess.call(["ls"])
+subprocess.call(["packer", "build", "template.json"])
+os.chdir("/Users/aaditipai/Downloads/packer.bak/output-ubuntu")
+subprocess.call(["/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager", "-r", "disk.vmdk", "-t", "0", "docker.vmdk"])
+time.sleep(2)
+subprocess.call(["/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager", "-d", "docker.vmdk"])
+subprocess.call(["cp" , "docker.vmdk", "/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/"])
+time.sleep(2)
+os.chdir("/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/")
+subprocess.call(["mkdir", "docker-folder"])
+subprocess.call(["mv" , "docker.vmdk", "docker-folder"])
+os.chdir("/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/docker-folder")
+subprocess.call(["qemu-img", "convert", "-c", "-O", "qcow2", "docker.vmdk", "docker.qcow2"])
+time.sleep(5)
+os.chdir("/Users/aaditipai/Downloads/ioxclient_1.8.1.0_darwin_amd64/docker-folder")
+subprocess.call(["cp", "../n1/package.yaml","."])
+doc = collections.OrderedDict()
+with open('package.yaml') as f:
+        doc = yaml.safe_load(f)
+
+doc["app"]["startup"]["disks"][0]["file"] = "docker.qcow2"
+print(doc)
+time.sleep(5)
+with open('package.yaml', 'w') as f:
+        yaml.safe_dump(doc, f)
+subprocess.call(["ioxclient", "package", "--name", "docker.qcow2", "."])
+time.sleep(2)
+subprocess.call(["scp", "docker.qcow2.tar", "aaditpai@sjc-ads-7327:/auto/tftp-sjc-users6/aaditpai/"])
+
+tn = telnetlib.Telnet(host,port, timeout=5)
+tn.set_debuglevel(100)
+
+#if promt == "host_disable":
+tn.write(cmd1.encode('ascii') + b"\n")
+time.sleep(1)
+tn.read_very_eager()
+tn.write(cmd2.encode('ascii') + b"\n")
+time.sleep(2)
+tn.read_very_eager()
+tn.write(cmd9.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd10.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd11.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd12.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(b"\n")
+time.sleep(10)
+password_prompt = "Password:"
+response = tn.read_until(password_prompt.encode('ascii'))
+tn.write(passwd.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(b"\n")
+time.sleep(2700)
+tn.write(cmd3.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+tn.write(b"\n")
+time.sleep(2)
+tn.write(b"\n")
+time.sleep(2)
+tn.write(cmd4.encode('ascii') + b"\n")
+tn.read_very_eager()
+tn.write(cmd13.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd14.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd15.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd16.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd17.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd18.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd19.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(2)
+tn.write(cmd23.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd20.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(10)
+tn.write(cmd21.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(10)
+tn.write(cmd22.encode('ascii') + b"\n")
+print(tn.read_very_eager().decode("ascii"))
+time.sleep(10)
+tn.write(cmd5.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(30)
+user_prompt = "ubuntu login: "
+response = tn.read_until(user_prompt.encode('ascii'))
+user_input = input('ubuntu login: ')
+tn.write(user_input.encode('ascii') + b"\n")
+time.sleep(2)
+passwd_prompt = 'Password:'
+response = tn.read_until(passwd_prompt.encode('ascii'))
+passwd = getpass()
+tn.write(passwd.encode('ascii') + b"\n")
+time.sleep(2)
+tn.write(cmd6.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(1)
+tn.write(cmd7.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(10)
+tn.write(cmd8.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(1)
+tn.write(cmd7.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(10)
+tn.write('\x03\x03\x03')
+tn.write(cmd13.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd24.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd25.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd26.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd27.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd28.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd29.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd4.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(2)
+tn.write(cmd5.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(20)
+tn.write(cmd30.encode('ascii') + b"\n")
+tn.read_very_eager()
+time.sleep(30)
+tn.close()
+print(tn.read_all())
+time.sleep(10)
+os.chdir("/Users/aaditipai/Downloads/playbooks")
+subprocess.call(["ansible-playbook", "list.yml"])
+#else:
+#  tn.write(cmd3.encode('ascii') + b"\n")
+#  tn.read_very_eager()
+#  tn.write(b"\n")
+#  tn.write(b"\n")
+#  time.sleep(2)
+#  tn.write(cmd4.encode('ascii') + b"\n")
+#  tn.read_very_eager()
+#  tn.close()

@@ -1,0 +1,22 @@
+app:
+  cpuarch: x86_64
+  resources:
+    cpu: 7000
+    disk: 10
+    memory: 1024
+    network:
+    - interface-name: eth0
+    profile: custom
+    vcpu: 1
+  startup:
+    disks:
+    - file: serial1.qcow2
+      target-dev: hdc
+  type: vm
+descriptor-schema-version: '2.3'
+info:
+  author-link: http://www.cisco.com
+  author-name: Cisco Systems
+  description: CentOS Application
+  name: Cisco IOx CentOS Application
+  version: '1.0'

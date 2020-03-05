@@ -1,0 +1,14 @@
+ip dhcp excluded-address 171.70.3.88
+ip dhcp pool 1
+ vrf Mgmt-vrf
+ network 172.29.2.0 255.255.254.0
+ domain-name cisco.com
+ dns-server 171.70.168.183 
+ default-router 171.70.3.88
+iox
+app-hosting appid docker
+ app-vnic management guest-interface 0
+ app-resource profile custom
+  cpu 1200
+  memory 2048
+end
